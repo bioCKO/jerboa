@@ -39,7 +39,7 @@ def get_gene_ids(id_path, usecols, rename_col, query_col):
         ...
     }
 
-    :param id_path:
+    :param id_pathw:
     :param usecols:
     :return:
     """
@@ -128,7 +128,7 @@ def msa(dir_path, save_path, testn=None):
 
 if __name__ == '__main__':
     # load all peptides fasta
-    fasta_dict = get_fasta_dict(fasta_dir='/Volumes/Data/JacJac/genome/')
+    # fasta_dict = get_fasta_dict(fasta_dir='/Volumes/Data/JacJac/genome/')
 
     # load gene ortho info
     usecols = ['Gene stable ID',
@@ -158,9 +158,8 @@ if __name__ == '__main__':
                  'Northern American deer mouse Query protein or transcript ID',
                  'Rat Query protein or transcript ID']
 
-    #gene_id_dict = get_gene_ids('/Users/hq/Desktop/ortho_total_idonly.tsv', usecols, rename_col,
-    #                            query_col=query_col)
-    #get_orthogroup_seq(gene_id_dict, fasta_dict, save_path='/Volumes/Data/JacJac/pep/')
-
-    msa('/Volumes/Data/JacJac/pep/', '/Volumes/Data/JacJac/aln/')
+    # gene_id_dict = get_gene_ids('/Users/hq/Desktop/ortho_total_idonly.tsv', usecols, rename_col,
+    #                             query_col=query_col)
+    # get_orthogroup_seq(gene_id_dict, fasta_dict, save_path='/Volumes/Data/JacJac/pep/')
+    # msa('/Volumes/Data/JacJac/pep/', '/Volumes/Data/JacJac/aln/')
 

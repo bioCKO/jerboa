@@ -1,9 +1,16 @@
 """
-gene_id.var file content
-pos
-ref
-ortho_use: the number of orthos in variant calling
-ortho
+diff2seq:
+
+block       -   +   +   -   +   +   +   -
+true pos    1   1   2   3   4   4   5   6
+pos         0   1   2   3   4   5   6   7
+ref         A   -   T   K   P   -   C   T
+alt         A   -   -   K   C   C   T   T
+
+True pos is the pos count for real aa (not "-"), pos is char count
+Identify change block start from pos 0 to the last pos
+Block start with first non-match/double-gap pair, end before first match and non-double-gap pair
+Then it would be easy to identify var from each block
 
 """
 
@@ -74,7 +81,6 @@ def diff2seq(refseq, altseq, del_char='.'):
                 blocks[-1].append(pos + 1)
     identity = '%.3f' % (identity_count / true_pos)
 
-
     for block in blocks:
         block_ref = ''.join([i for i in refseq[block[0]:block[1]] if i != '-'])  # remove '-'
         block_alt = ''.join([i for i in altseq[block[0]:block[1]] if i != '-'])
@@ -96,14 +102,23 @@ def diff2seq(refseq, altseq, del_char='.'):
             block_alt = del_char
         elif len(block_ref) >= 1 and len(block_alt) >= 1:
             block_type = 'delins'
+        elif len(block_ref) == 0 and len(block_alt) == 0:
+            # both "-", "-" situation
+            continue
         else:
             block_type = 'unknown'
+            print(block_ref, block_alt, 'unknown type')
+        if refseq[block[0]] == '-':
+            # In the case where ref seq block start with "-".
+            block_pos[0] += 1
+        if block_pos[0] == 0:
+            block_pos[0] = 1
         block_var = [block_pos[0], block_pos[-1], block_ref, block_alt, block_type]
         var_list.append(block_var)
     return identity, var_list
 
 
-def call_variants(aln_path, save_dir, key='ENSJJAP'):
+def call_variants(aln_path, save_dir, key='ENSJJAP', based='key'):
     if os.path.exists(os.path.join(save_dir, os.path.split(aln_path)[1][:-3] + 'var.tsv')):
         return
     align = AlignIO.read(open(aln_path), format='clustal')
@@ -124,8 +139,14 @@ def call_variants(aln_path, save_dir, key='ENSJJAP'):
 
     total_var = []
     for other in other_index:
-        refseq = align[key_index]
-        altseq = align[other]
+        if based == 'key':
+            refseq = align[key_index]
+            altseq = align[other]
+        elif based == 'ortho':
+            refseq = align[other]
+            altseq = align[key_index]
+        else:
+            raise ValueError("Unknown %s based" % based)
         identity, var_list = diff2seq(refseq=refseq, altseq=altseq)
         pre_col = [seq_id_list[key_index], seq_id_list[other], get_species(seq_id_list[other]), identity]
         total_var += [pre_col + i for i in var_list]
@@ -140,15 +161,15 @@ def call_variants(aln_path, save_dir, key='ENSJJAP'):
 
 
 if __name__ == '__main__':
-    aln_fl = [os.path.join('/Volumes/Data/JacJac/aln/', i)
-              for i in os.listdir('/Volumes/Data/JacJac/aln/') if '.aln' in i]
+    aln_fl = [os.path.join('/Users/hq/data/jerboa/aln/', i)
+              for i in os.listdir('/Users/hq/data/jerboa/aln/') if '.aln' in i]
     counter = 0
     for p in aln_fl:
         counter += 1
         if counter % 100 == 0:
             print(counter)
         try:
-            call_variants(p, '/Volumes/Data/JacJac/var/')
+            call_variants(p, '/Users/hq/data/jerboa/var_ortho/', based='ortho')
         except ValueError:
             print(p)
 
