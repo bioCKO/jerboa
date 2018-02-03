@@ -16,6 +16,7 @@ Then it would be easy to identify var from each block
 
 from Bio import AlignIO
 import os
+import provean
 
 species_id_dict = {'ENSJJAP': 'Jaculus_jaculus',
                    'ENSCGRP': 'Cricetulus_griseus_crigri',
@@ -108,8 +109,11 @@ def diff2seq(refseq, altseq, del_char='.'):
         else:
             block_type = 'unknown'
             print(block_ref, block_alt, 'unknown type')
-        if refseq[block[0]] == '-':
-            # In the case where ref seq block start with "-".
+
+        if refseq[block[0]] == '-' and block_type != 'ins':
+            # In the case where ref seq block start with "-",
+            # e.g. ref "--AA", alt "GCAA",
+            # but also prevent to include ins here
             block_pos[0] += 1
         if block_pos[0] == 0:
             block_pos[0] = 1
@@ -169,8 +173,16 @@ if __name__ == '__main__':
         if counter % 100 == 0:
             print(counter)
         try:
+            call_variants(p, '/Users/hq/data/jerboa/var/', based='key')
+        except ValueError:
+            print(p)
+    for p in aln_fl:
+        counter += 1
+        if counter % 100 == 0:
+            print(counter)
+        try:
             call_variants(p, '/Users/hq/data/jerboa/var_ortho/', based='ortho')
         except ValueError:
             print(p)
-
-
+        gene_id = os.path.split(p)[1][:-4]
+        provean.get_provean_input(gene_id=gene_id, dir_path='/Users/hq/data/jerboa/')
