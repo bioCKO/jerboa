@@ -1,4 +1,7 @@
 import sys
+# argv[1]: path
+# argv[2]: number of genes in each job
+# argv[3]: total job numbers
 
 for i in range(1, int(sys.argv[3]) + 1):
     print(i)

@@ -78,7 +78,7 @@ def diff2seq(refseq, altseq, del_char='.'):
         else:
             if len(blocks) == 0 or len(blocks[-1]) == 2:
                 blocks.append([block_start])
-            if pos == len(refseq) - 1:
+            if pos == len(refseq) - 1:  # the last aa
                 blocks[-1].append(pos + 1)
     identity = '%.3f' % (identity_count / true_pos)
 
@@ -91,8 +91,8 @@ def diff2seq(refseq, altseq, del_char='.'):
         elif len(block_ref) == 0 and len(block_alt) >= 1:
             block_type = 'ins'
             if block[0] == 0:
-                block_ref = str(refseq).lstrip('-')[0]
-                block_alt = str(refseq).lstrip('-')[0] + block_alt
+                block_ref = str(refseq._seq).lstrip('-')[0]
+                block_alt = str(refseq._seq).lstrip('-')[0] + block_alt
                 block_type = 'delins'
                 # this is actually extension by hgvs, but provean seems to only support this kind expression
             else:
@@ -184,5 +184,6 @@ if __name__ == '__main__':
             call_variants(p, '/Users/hq/data/jerboa/var_ortho/', based='ortho')
         except ValueError:
             print(p)
+            continue
         gene_id = os.path.split(p)[1][:-4]
         provean.get_provean_input(gene_id=gene_id, dir_path='/Users/hq/data/jerboa/')

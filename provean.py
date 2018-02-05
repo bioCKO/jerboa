@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 from Bio import SeqIO
 import subprocess
+import shlex
 import sys
 
 
@@ -110,8 +111,8 @@ def run_provean(gene, file_dir, submit, num_threads='12', overwrite=True):
                        '--tmp_dir', '/home/hanqing/tmp/',
                        '--quiet']
                 output = subprocess.check_output(cmd, timeout=300)
-                subprocess.check_call(["date", "'+%A %W %Y %X'", "&&",
-                                       'echo', "Command Finish\t" + ' '.join(cmd)])
+                subprocess.check_call(shlex.split("date '+%A %W %Y %X'"))
+                subprocess.check_call(['echo', "Command Finish\t" + ' '.join(cmd)])
                 f = open(os.path.splitext(fa_file)[0] + '.provean', 'wb')
                 f.write(output)
                 f.close()
@@ -133,8 +134,8 @@ def run_provean(gene, file_dir, submit, num_threads='12', overwrite=True):
                        '--tmp_dir', '/home/hanqing/tmp/',
                        '--quiet']
                 output = subprocess.check_output(cmd, timeout=300)
-                subprocess.check_call(["date", "'+%A %W %Y %X'", "&&",
-                                       'echo', "Command Finish\t" + ' '.join(cmd)])
+                subprocess.check_call(shlex.split("date '+%A %W %Y %X'"))
+                subprocess.check_call(['echo', "Command Finish\t" + ' '.join(cmd)])
                 f = open(os.path.splitext(fa_file)[0] + '.provean', 'wb')
                 f.write(output)
                 f.close()
@@ -147,11 +148,9 @@ def run_provean(gene, file_dir, submit, num_threads='12', overwrite=True):
     log_f.write('## Number of provean results: %d\n' % len(pfl))
     log_f.close()
     if len(species) != len(pfl):
-        subprocess.check_call(["date", "'+%A %W %Y %X'", "&&",
-                               'echo', "!Error\t" + "Gene: %s\n" % gene])
+        subprocess.check_call(['echo', "!Error\t" + "Gene: %s\n" % gene])
     else:
-        subprocess.check_call(["date", "'+%A %W %Y %X'", "&&",
-                               "echo", "!Success\t" + "Gene: %s\n" % gene])
+        subprocess.check_call(["echo", "!Success\t" + "Gene: %s\n" % gene])
     return
 
 
