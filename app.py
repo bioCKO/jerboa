@@ -11,7 +11,8 @@ from Bio import AlignIO
 
 app = dash.Dash()
 # input data, don't modify these inside callback
-df = pd.read_table('total_var.filtered.tsv')
+df = pd.read_table('/Users/hq/Documents/data/jerboa/total_var.filtered.length1.tsv')
+
 protein2gene_series = pd.read_table('jj_gene_protein.txt', sep='\t',
                                     header=0, index_col='Protein stable ID')['Gene stable ID']
 provean_score = df['PROVEAN']
@@ -114,11 +115,11 @@ app.layout = html.Div(children=[
     dcc.Graph(
         id='PROVEAN-score-distribution',
     ),
-    dcc.Slider(
+    dcc.RangeSlider(
         id='threshold-slider',
-        min=provean_score.min(),
-        max=provean_score.max() - 0.1,
-        value=provean_score.quantile(.01),
+        min=provean_score.min()-1,
+        max=provean_score.max()+1,
+        value=[provean_score.min(), provean_score.max()],
         step=0.05,
         updatemode='mouseup'
     ),
@@ -162,9 +163,9 @@ def update_distplot(threshold):
             'type': 'rect',
             'xref': 'x',
             'yref': 'paper',
-            'x0': threshold,
+            'x0': threshold[0],
             'y0': 0,
-            'x1': provean_score.max(),
+            'x1': threshold[1],
             'y1': 1,
             'fillcolor': '#FFFFFF',
             'opacity': 0.5,
@@ -176,9 +177,9 @@ def update_distplot(threshold):
             'type': 'line',
             'xref': 'x',
             'yref': 'y',
-            'x0': threshold,
+            'x0': threshold[0],
             'y0': 0,
-            'x1': threshold,
+            'x1': threshold[1],
             'y1': 0.5,
             'line': {
                 'color': 'rgb(55, 128, 191)',
@@ -194,7 +195,8 @@ def update_distplot(threshold):
     [dash.dependencies.Input('threshold-slider', 'value')]
 )
 def filter_var_by_provean_threshold(threshold):
-    sub_df = df[provean_score < threshold]
+    print(threshold)
+    sub_df = df[(provean_score < threshold[1]) & (provean_score > threshold[0])]
     return sub_df.to_json(date_format='iso', orient='split')
 
 
@@ -261,12 +263,11 @@ def update_single_var_display(selected_row_indices, data):
     jj_aln_idx = seq_id_list.index(jj_protein_id)
     jj_length = len(jj_aln[jj_aln_idx])
     jj_pos, true_pos_list = true_pos2msa_pos(jj_aln[jj_aln_idx], jj_true_pos)  # change this to some func
-    region_start = max(0, jj_pos-15)
-    region_end = min(jj_length, jj_pos + 15)
+    region_start = max(0, jj_pos-20)
+    region_end = min(jj_length, jj_pos + 20)
     plot_jj_aln = jj_aln[:, region_start:region_end]
     x = true_pos_list[region_start:region_end]
     y = trans_ppid_species([r.id for r in plot_jj_aln])
-
     symbol = np.array(plot_jj_aln).tolist()
     z = aln_color_z(np.array(plot_jj_aln))
     fig = ff.create_annotated_heatmap(z, x=None, y=y, annotation_text=symbol, colorscale=color_scale,
@@ -275,19 +276,20 @@ def update_single_var_display(selected_row_indices, data):
     fig.layout.xaxis.tickvals = list(range(len(x)))
     fig.layout.xaxis.ticktext = x
     fig.layout.margin.l = 120
-    shape_x_add = min(14, var['End']-var['Start'])
+    shape_x_add = min(19, var['End']-var['Start'])
+
     fig.layout.shapes = [
         {   # shape for the variants
             'type': 'rect',
-            'x0': 14.5 if jj_pos >= 15 else jj_pos,
+            'x0': x.index(str(var['Start'])) - 0.5,
             'y0': -1,
-            'x1': 15.5 + shape_x_add if jj_pos >= 15 else jj_pos,
+            'x1': len(x) - x[::-1].index(str(var['End'])) - 0.5,
             'y1': len(seq_id_list)+0.5,
             'line': {
-                'color': 'rgba(128, 128, 128, 0.8)',
+                'color': 'rgba(128, 128, 128, 0.5)',
                 'width': 2,
             },
-            'fillcolor': 'rgba(128, 128, 128, 0.4)',
+            'fillcolor': 'rgba(128, 128, 128, 0.2)',
         },
         {  # shape for jerboa sequence
             'type': 'rect',
@@ -296,10 +298,10 @@ def update_single_var_display(selected_row_indices, data):
             'x1': region_end-region_start-0.5,
             'y1': jj_aln_idx + 0.5,
             'line': {
-                'color': 'rgba(0, 191, 255, 1)',
+                'color': 'rgba(128, 128, 128, 0.5)',
                 'width': 2,
             },
-            'fillcolor': 'rgba(0, 191, 255, 0.5)',
+            'fillcolor': 'rgba(128, 128, 128, 0.2)',
         }
     ]
     return fig

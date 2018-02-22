@@ -110,13 +110,18 @@ def run_provean(gene, file_dir, submit, num_threads='12', overwrite=True):
                        '--num_threads', num_threads,
                        '--tmp_dir', '/home/hanqing/tmp/',
                        '--quiet']
-                output = subprocess.check_output(cmd, timeout=300)
+                try:
+                    output = subprocess.check_output(cmd, timeout=300)
+                except subprocess.CalledProcessError:
+                    subprocess.check_call(shlex.split("date '+%A %W %Y %X'"))
+                    subprocess.check_call(['echo', "Error in return:\t" + ' '.join(cmd)])
+                    continue
                 subprocess.check_call(shlex.split("date '+%A %W %Y %X'"))
                 subprocess.check_call(['echo', "Command Finish\t" + ' '.join(cmd)])
                 f = open(os.path.splitext(fa_file)[0] + '.provean', 'wb')
                 f.write(output)
                 f.close()
-            except TimeoutError:
+            except subprocess.TimeoutExpired:
                 log_f.write('# Time out\n')
                 log_f.write(' '.join(cmd)+'\n')
                 continue
@@ -133,13 +138,18 @@ def run_provean(gene, file_dir, submit, num_threads='12', overwrite=True):
                        '--subject_sequences', save_fasta_set + '.fasta',
                        '--tmp_dir', '/home/hanqing/tmp/',
                        '--quiet']
-                output = subprocess.check_output(cmd, timeout=300)
+                try:
+                    output = subprocess.check_output(cmd, timeout=300)
+                except subprocess.CalledProcessError:
+                    subprocess.check_call(shlex.split("date '+%A %W %Y %X'"))
+                    subprocess.check_call(['echo', "Error in return:\t" + ' '.join(cmd)])
+                    continue
                 subprocess.check_call(shlex.split("date '+%A %W %Y %X'"))
                 subprocess.check_call(['echo', "Command Finish\t" + ' '.join(cmd)])
                 f = open(os.path.splitext(fa_file)[0] + '.provean', 'wb')
                 f.write(output)
                 f.close()
-            except TimeoutError:
+            except subprocess.TimeoutExpired:
                 log_f.write('# Time out\n')
                 log_f.write(' '.join(cmd) + '\n')
 

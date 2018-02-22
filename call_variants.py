@@ -16,7 +16,10 @@ Then it would be easy to identify var from each block
 
 from Bio import AlignIO
 import os
+import pandas as pd
+import glob
 import provean
+import numpy as np
 
 species_id_dict = {'ENSJJAP': 'Jaculus_jaculus',
                    'ENSCGRP': 'Cricetulus_griseus_crigri',
@@ -164,7 +167,97 @@ def call_variants(aln_path, save_dir, key='ENSJJAP', based='key'):
     nf.close()
 
 
+def anno_provean(dir_path, gene):
+    var_file = os.path.join(dir_path, 'var', gene + '.var.tsv')
+    vf = pd.read_table(var_file, header=0, index_col=['Start', 'End', 'Ref', 'Alt', 'Orthologous species'])
+    species = vf.index.get_level_values('Orthologous species').unique()
+    log_dict = {}
+
+    provean_list = []
+    for i in range(len(species)):
+        species_idx = vf[vf.index.get_level_values('Orthologous species') == species[i]].index
+        provean_file = os.path.join(dir_path, 'provean_result', gene+'_'+species[i]+'.provean')
+        try:
+            pf = open(provean_file)
+        except FileNotFoundError:
+            log_dict[species[i]] = {'var': species_idx.size,
+                                 'Provean': 0,
+                                 'miss': species_idx.size - 0}
+            continue
+        plins_all = [i.rstrip() for i in pf.readlines()]
+        try:
+            plins_all = plins_all[plins_all.index('# VARIATION	SCORE') + 1:]
+        except ValueError:
+            print(provean_file, 'no score title line')
+            log_dict[species[i]] = {'var': species_idx.size,
+                                    'Provean': 0,
+                                    'miss': species_idx.size - 0}
+            continue
+        plins = [i.split('\t')[1] for i in plins_all]
+        pf.close()
+
+        if len(plins) == species_idx.size:
+            # only anno provean when itmes are same
+            provean_list.append(pd.Series(plins, index=species_idx))
+        else:
+            var_input_file = os.path.join(dir_path, 'provean', gene, gene + '_' + species[i] + '.var')
+            var_input = set([l.rstrip() for l in open(var_input_file).readlines()])
+            var_output = [i.split('\t')[0] for i in plins_all]
+            result = pd.Series(plins, index=var_output)
+            for var in var_input:
+                if var not in result.index:
+                    result[var] = np.NaN
+
+            provean_list.append(pd.Series(result.tolist(), index=species_idx))
+    if len(provean_list) != 0:
+        vf['Provean'] = pd.concat(provean_list)
+        vf.to_csv(os.path.join(dir_path, 'anno', '_'.join([gene, 'var', 'provean'])+'.tsv'), sep='\t')
+    return log_dict
+
+
+def batch_anno_provean(dir_path):
+    gene_list = [i.split('.')[0] for i in os.listdir(os.path.join(dir_path, 'var')) if 'ENSJJ' in i]
+    total_log = {}
+    count = 0
+    for gene in gene_list:
+        count += 1
+        if count % 500 == 0:
+            print(count)
+        log_dict = anno_provean(dir_path, gene=gene)
+        if len(log_dict) != 0:
+            total_log[gene] = log_dict
+
+    lines = []
+    for k, v in total_log.items():
+        for k_, v_ in v.items():
+            ll = [k, k_, v_['miss'], v_['Provean'], v_['var']]
+            lines.append(ll)
+    f = open(os.path.join(dir_path, 'provean_result_log.tsv'), 'w')
+    f.writelines(['\t'.join(list(map(str, i)))+'\n' for i in lines])
+    return
+
+
+def concat_table(dir_path, key_word, save_to):
+    fl = [os.path.join(dir_path, i) for i in os.listdir(dir_path) if key_word in i]
+    total_file = open(save_to, 'w')
+    first = True
+    n = 0
+    for p in fl:
+        n += 1
+        if n % 500 == 0:
+            print(n)
+        f = open(p)
+        if first:
+            total_file.writelines(f.readlines())
+            first = False
+        else:
+            total_file.writelines(f.readlines()[1:])
+        f.close()
+    return
+
+
 if __name__ == '__main__':
+    """
     aln_fl = [os.path.join('/Users/hq/data/jerboa/aln/', i)
               for i in os.listdir('/Users/hq/data/jerboa/aln/') if '.aln' in i]
     counter = 0
@@ -187,3 +280,4 @@ if __name__ == '__main__':
             continue
         gene_id = os.path.split(p)[1][:-4]
         provean.get_provean_input(gene_id=gene_id, dir_path='/Users/hq/data/jerboa/')
+    """
